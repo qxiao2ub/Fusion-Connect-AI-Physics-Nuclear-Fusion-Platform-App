@@ -28,7 +28,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 APP_NAME = 'FusionConnect AI'
-FOUNDER_NAME = 'Ethan'
+FOUNDER_NAME = 'Ethan Meline'
+ADVISOR_NAME = 'Dr. Qingyang Xiao'
 APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = APP_DIR / 'data'
 DATA_DIR.mkdir(exist_ok=True)
@@ -449,7 +450,7 @@ def ensure_seed_data() -> None:
         for title, category, tags, body in seed_posts:
             conn.execute(
                 'INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                (str(uuid.uuid4()), 'seed', 'Ethan Demo Team', category, title, body, json_dumps(tags), random.randint(3, 18), utc_now())
+                (str(uuid.uuid4()), 'seed', 'Ethan Meline Demo Team', category, title, body, json_dumps(tags), random.randint(3, 18), utc_now())
             )
         conn.commit()
 
@@ -758,11 +759,16 @@ def render_header() -> None:
     st.title('⚛️ FusionConnect AI')
     st.caption('An AI-assisted public learning, community, and collaboration platform for physics and nuclear fusion.')
     st.caption(f'Founder & Author: {FOUNDER_NAME}')
+    st.caption(f'Advisor: {ADVISOR_NAME}')
 
 
 def sidebar_user(user_id: str) -> Dict[str, Any]:
     user = get_user(user_id)
     with st.sidebar:
+        st.subheader('Project Team')
+        st.markdown(f'**Founder & Author:** {FOUNDER_NAME}')
+        st.markdown(f'**Advisor:** {ADVISOR_NAME}')
+        st.divider()
         st.subheader('Anonymous session')
         st.caption('This prototype uses an anonymous ID. For a production launch, connect a real auth provider and external database.')
         st.code(user_id[:8] + '...' + user_id[-6:])
@@ -1060,7 +1066,7 @@ def qr_png_bytes(url: str) -> bytes:
 
 def page_dashboard(user: Dict[str, Any]) -> None:
     st.header('Founder Dashboard')
-    st.write('This page helps Ethan track anonymized launch, outreach, and community-growth metrics.')
+    st.write('This page helps Ethan Meline track anonymized launch, outreach, and community-growth metrics.')
     default_pass = 'demo'
     try:
         admin_pass = st.secrets.get('ADMIN_PASSCODE', default_pass)
@@ -1218,6 +1224,7 @@ def main() -> None:
         page_privacy(user)
 
     st.divider()
+    st.caption(f'Founder & Author: {FOUNDER_NAME}  |  Advisor: {ADVISOR_NAME}')
     st.caption('Prototype only: educational content is simplified; use expert review before presenting it as authoritative curriculum. AI suggestions are recommendations, not scientific or academic advice.')
 
 

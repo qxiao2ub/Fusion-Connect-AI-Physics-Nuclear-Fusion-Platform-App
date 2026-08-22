@@ -1,10 +1,18 @@
 # FusionConnect AI
 
-**Founder & Author: Ethan**
+**Founder & Author: Ethan Meline**
+
+**Advisor: Dr. Qingyang Xiao**
 
 FusionConnect AI is a Streamlit prototype for public physics and nuclear-fusion education, community discussion, research-collaboration discovery, and AI-assisted personalization.
 
 The repository is organized for direct upload to GitHub and deployment on **Streamlit Community Cloud** with **Python 3.12**.
+
+## Project team
+
+- **Founder & Author:** Ethan Meline
+- **Advisor:** Dr. Qingyang Xiao
+
 
 ## Core features
 
