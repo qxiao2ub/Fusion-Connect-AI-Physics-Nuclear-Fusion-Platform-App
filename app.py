@@ -27,10 +27,11 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-APP_NAME = 'FusionConnect AI'
+APP_NAME = 'Fusion Connect AI'
 FOUNDER_NAME = 'Ethan Meline'
 ADVISOR_NAME = 'Dr. Qingyang Xiao'
 APP_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = APP_DIR / 'assets'
 DATA_DIR = APP_DIR / 'data'
 DATA_DIR.mkdir(exist_ok=True)
 DB_PATH = Path(os.getenv('FUSIONCONNECT_DB_PATH', str(DATA_DIR / 'fusionconnect_ai.sqlite3')))
@@ -745,46 +746,328 @@ def add_feedback(user: Dict[str, Any], action_id: str, suggested_item: str, rati
 
 
 def render_header() -> None:
-    st.set_page_config(page_title=APP_NAME, page_icon='⚛️', layout='wide')
+    st.set_page_config(page_title=APP_NAME, page_icon='⚛️', layout='wide', initial_sidebar_state='expanded')
     st.markdown(
         """
         <style>
-        .metric-card {border: 1px solid rgba(120,120,120,.25); border-radius: 16px; padding: 1rem; background: rgba(120,120,120,.05);}
-        .small-muted {font-size: 0.9rem; opacity: 0.75;}
-        .tag {display: inline-block; padding: .15rem .45rem; border-radius: 999px; border: 1px solid rgba(120,120,120,.35); margin: .1rem; font-size: .8rem;}
+        :root {
+          --fc-bg: #0d1625;
+          --fc-card: #132033;
+          --fc-card-2: #17263b;
+          --fc-text: #f2f6f9;
+          --fc-muted: #9db0c4;
+          --fc-border: rgba(128, 166, 199, 0.22);
+          --fc-primary: #62dff4;
+          --fc-primary-2: #7084ff;
+          --fc-signal: #68ebce;
+        }
+        html, body, [class*="css"] { font-family: "IBM Plex Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        .stApp {
+          color: var(--fc-text);
+          background:
+            linear-gradient(rgba(98,223,244,.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(98,223,244,.035) 1px, transparent 1px),
+            var(--fc-bg);
+          background-size: 64px 64px;
+        }
+        [data-testid="stHeader"] { background: rgba(13,22,37,.78); backdrop-filter: blur(12px); }
+        [data-testid="stToolbar"] { right: 1rem; }
+        [data-testid="stSidebar"] { background: #101b2b; border-right: 1px solid var(--fc-border); }
+        [data-testid="stSidebar"] * { color: var(--fc-text); }
+        [data-testid="stSidebar"] .stRadio label { padding: .22rem .35rem; border-radius: .35rem; }
+        [data-testid="stSidebar"] .stRadio label:hover { background: rgba(98,223,244,.08); }
+        .block-container { max-width: 1220px; padding-top: 2.2rem; padding-bottom: 4rem; }
+        h1, h2, h3 { letter-spacing: -0.025em; }
+        h1, h2, h3, h4, p, li, label, span { color: var(--fc-text); }
+        .stCaption, [data-testid="stCaptionContainer"], small { color: var(--fc-muted) !important; }
+        a { color: var(--fc-primary) !important; }
+        hr { border-color: var(--fc-border) !important; }
+        [data-testid="stVerticalBlockBorderWrapper"] { border-color: var(--fc-border) !important; border-radius: .55rem; background: rgba(19,32,51,.70); }
+        [data-testid="stMetric"] { border: 1px solid var(--fc-border); border-radius: .55rem; padding: 1rem; background: rgba(19,32,51,.78); }
+        [data-testid="stMetricValue"] { color: var(--fc-text); }
+        [data-testid="stMetricLabel"] p { color: var(--fc-muted) !important; text-transform: uppercase; letter-spacing: .12em; font-size: .67rem; }
+        .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+          border-radius: .4rem; border: 1px solid rgba(98,223,244,.48); background: rgba(98,223,244,.12); color: #eafcff;
+        }
+        .stButton > button:hover, .stDownloadButton > button:hover, .stFormSubmitButton > button:hover {
+          border-color: var(--fc-primary); background: rgba(98,223,244,.22); color: #fff;
+        }
+        .stTextInput input, .stTextArea textarea, .stSelectbox [data-baseweb="select"] > div, .stMultiSelect [data-baseweb="select"] > div {
+          background: #101b2b !important; color: var(--fc-text) !important; border-color: var(--fc-border) !important;
+        }
+        [data-testid="stImage"] img { border-radius: .55rem; border: 1px solid var(--fc-border); box-shadow: 0 18px 65px -26px rgba(98,223,244,.55); }
+        .fc-brand { display:flex; align-items:center; gap:.65rem; padding:.2rem 0 .7rem 0; }
+        .fc-atom { width:2rem; height:2rem; display:flex; align-items:center; justify-content:center; border:1px solid rgba(98,223,244,.4); border-radius:50%; color:var(--fc-primary); box-shadow:0 0 28px rgba(98,223,244,.12); }
+        .fc-brand-title { font-size:1rem; font-weight:700; line-height:1.05; color:#fff; }
+        .fc-brand-sub { font-size:.68rem; letter-spacing:.16em; text-transform:uppercase; color:var(--fc-muted); margin-top:.18rem; }
+        .fc-eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.69rem; letter-spacing:.18em; text-transform:uppercase; color:var(--fc-muted); margin-bottom:.45rem; }
+        .fc-title { font-size: clamp(2.15rem, 5vw, 4.6rem); line-height:1.04; font-weight:750; letter-spacing:-.045em; margin:.25rem 0 1rem 0; color:#f7fbff; }
+        .fc-page-title { font-size:2.5rem; line-height:1.08; font-weight:730; letter-spacing:-.035em; margin:.25rem 0 .75rem 0; color:#f7fbff; }
+        .fc-lead { max-width: 48rem; font-size:1rem; line-height:1.75; color:var(--fc-muted); }
+        .plasma-text { background:linear-gradient(115deg,var(--fc-primary-2),var(--fc-primary)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .fc-card { border:1px solid var(--fc-border); border-radius:.55rem; padding:1.35rem; background:rgba(19,32,51,.78); min-height:150px; }
+        .fc-card h3 { margin:.65rem 0 .5rem 0; font-size:1.12rem; }
+        .fc-card p { color:var(--fc-muted); font-size:.88rem; line-height:1.55; }
+        .fc-card .fc-icon { color:var(--fc-primary); font-size:1.2rem; }
+        .fc-stat { border-top:1px solid var(--fc-border); padding-top:.85rem; }
+        .fc-stat-value { color:var(--fc-primary); font-family:ui-monospace,monospace; font-size:1.03rem; }
+        .fc-stat-label { color:var(--fc-muted); font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; margin-top:.25rem; }
+        .fc-note { border:1px solid var(--fc-border); border-left:3px solid var(--fc-primary); border-radius:.45rem; padding:.9rem 1rem; background:rgba(19,32,51,.62); color:var(--fc-muted); }
+        .fc-team { border:1px solid var(--fc-border); border-radius:.5rem; padding:.8rem .9rem; background:rgba(19,32,51,.6); font-size:.8rem; }
+        .fc-team strong { color:var(--fc-primary); }
+        .tag { display:inline-block; padding:.18rem .5rem; border-radius:999px; border:1px solid rgba(98,223,244,.28); margin:.1rem; font-size:.75rem; color:var(--fc-primary); background:rgba(98,223,244,.06); }
+        .small-muted { font-size:.86rem; color:var(--fc-muted); }
+        div[data-testid="stProgress"] > div > div > div > div { background:linear-gradient(90deg,var(--fc-primary-2),var(--fc-primary)); }
+        div[data-baseweb="tab-list"] { gap:.25rem; }
+        button[data-baseweb="tab"] { border-radius:.35rem; color:var(--fc-muted); }
+        button[data-baseweb="tab"][aria-selected="true"] { color:var(--fc-primary); background:rgba(98,223,244,.09); }
         </style>
         """,
         unsafe_allow_html=True,
     )
-    st.title('⚛️ FusionConnect AI')
-    st.caption('An AI-assisted public learning, community, and collaboration platform for physics and nuclear fusion.')
-    st.caption(f'Founder & Author: {FOUNDER_NAME}')
-    st.caption(f'Advisor: {ADVISOR_NAME}')
 
+
+def ui_heading(eyebrow: str, title: str, description: str = '') -> None:
+    desc = f'<p class="fc-lead">{description}</p>' if description else ''
+    st.markdown(
+        f'<div class="fc-eyebrow">{eyebrow}</div><div class="fc-page-title">{title}</div>{desc}',
+        unsafe_allow_html=True,
+    )
 
 def sidebar_user(user_id: str) -> Dict[str, Any]:
     user = get_user(user_id)
     with st.sidebar:
-        st.subheader('Project Team')
-        st.markdown(f'**Founder & Author:** {FOUNDER_NAME}')
-        st.markdown(f'**Advisor:** {ADVISOR_NAME}')
+        st.markdown(
+            '<div class="fc-brand"><div class="fc-atom">⚛</div><div><div class="fc-brand-title">Fusion Connect AI</div><div class="fc-brand-sub">Physics · Fusion · Community</div></div></div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div class="fc-team"><strong>Founder & Author</strong><br>{FOUNDER_NAME}<br><br><strong>Advisor</strong><br>{ADVISOR_NAME}</div>',
+            unsafe_allow_html=True,
+        )
         st.divider()
-        st.subheader('Anonymous session')
-        st.caption('This prototype uses an anonymous ID. For a production launch, connect a real auth provider and external database.')
+        st.caption('ANONYMOUS SESSION')
         st.code(user_id[:8] + '...' + user_id[-6:])
-        if st.button('Generate new anonymous session'):
+        if st.button('New anonymous session', use_container_width=True):
             st.session_state.user_id = str(uuid.uuid4())
             st.rerun()
+        st.markdown(f'**{user.get("display_name") or make_demo_name(user_id)}**')
+        st.caption(f'{user.get("role") or "Role not set"} · AI personalization {"on" if user.get("consent_ai") else "off"}')
         st.divider()
-        st.markdown(f'**Display name:** {user.get("display_name") or make_demo_name(user_id)}')
-        st.markdown(f'**Role:** {user.get("role") or "Not set"}')
-        st.markdown(f'**AI personalization:** {"On" if user.get("consent_ai") else "Off"}')
+        st.caption('PUBLIC-EDUCATION PROTOTYPE')
+        st.caption('Anonymous-by-default profile design. Production launch should add persistent authentication, moderation, and hosted storage.')
     return user
+
+def page_home(user: Dict[str, Any]) -> None:
+    left, right = st.columns([1.02, 0.98], gap='large')
+    with left:
+        st.markdown(
+            '''<div class="fc-eyebrow">Plasma · Confinement · Energy</div>
+            <div class="fc-title">Understand Fusion.<br>Explore Physics.<br><span class="plasma-text">Connect Ideas.</span></div>
+            <p class="fc-lead">A calm, rigorous place to learn how stars are bottled: guided physics modules, an honest science community, collaborative projects, and transparent AI recommendations for students, teachers, researchers, and the public.</p>''',
+            unsafe_allow_html=True,
+        )
+        b1, b2 = st.columns(2)
+        with b1:
+            if st.button('Start learning →', use_container_width=True):
+                st.session_state.nav_page = 'Profile / Onboarding'
+                st.rerun()
+        with b2:
+            if st.button('Explore fusion', use_container_width=True):
+                st.session_state.nav_page = 'Learn'
+                st.rerun()
+        s1, s2, s3 = st.columns(3)
+        for col, value, label in [
+            (s1, '≈150M °C', 'plasma core target'),
+            (s2, 'nTτ', 'triple product'),
+            (s3, '17.6 MeV', 'per D–T event'),
+        ]:
+            with col:
+                st.markdown(f'<div class="fc-stat"><div class="fc-stat-value">{value}</div><div class="fc-stat-label">{label}</div></div>', unsafe_allow_html=True)
+    with right:
+        hero = ASSETS_DIR / 'tokamak-hero.jpg'
+        if hero.exists():
+            st.image(str(hero), caption='Tokamak concept artwork from the uploaded Plasma Learn Hub UI', use_container_width=True)
+        st.markdown('<div class="fc-note"><div class="fc-eyebrow">Confinement</div><code>q(r) = r Bφ / (R Bθ)</code></div>', unsafe_allow_html=True)
+
+    st.write('')
+    st.markdown('<div class="fc-eyebrow">The platform</div><div class="fc-page-title" style="font-size:2rem">Four surfaces, one scientific loop</div><p class="fc-lead">Learn a concept, discuss it, build something with people who care about the same problem, then let transparent AI help choose a useful next step.</p>', unsafe_allow_html=True)
+    features = [
+        ('◫', 'Learn', 'Structured modules from plasma basics to confinement, materials, diagnostics, and AI for fusion.'),
+        ('◉', 'Connect', 'A focused science feed where learners, teachers, and researchers can exchange questions, results, and ideas.'),
+        ('◎', 'Collaborate', 'Open research proposals, classroom projects, reading groups, and outreach ideas with skills stated up front.'),
+        ('✦', 'Personalise', 'A transparent AI Mentor combines supervised ML, an MLP neural model, and feedback rewards to explain recommendations.'),
+    ]
+    for row in [features[:2], features[2:]]:
+        cols = st.columns(2)
+        for col, (icon, title, body) in zip(cols, row):
+            with col:
+                st.markdown(f'<div class="fc-card"><div class="fc-icon">{icon}</div><h3>{title}</h3><p>{body}</p></div>', unsafe_allow_html=True)
+
+    st.write('')
+    c1, c2 = st.columns([0.88, 1.12], gap='large')
+    with c1:
+        st.markdown('<div class="fc-eyebrow">Where the curriculum points</div><div class="fc-page-title" style="font-size:2rem">From fundamentals to reactor thinking</div><p class="fc-lead">The learning path connects plasma theory to the density–temperature–confinement trade space, then moves into materials, diagnostics, controls, safety, and research collaboration.</p><p style="font-family:ui-monospace,monospace;color:#62dff4">n · T · τ<sub>E</sub> → fusion performance</p>', unsafe_allow_html=True)
+    with c2:
+        concept = pd.DataFrame({
+            'stage': ['Plasma basics', 'Magnetic confinement', 'Performance metrics', 'Materials & fuel cycle', 'Diagnostics & control', 'Integrated systems'],
+            'conceptual_depth': [12, 30, 48, 64, 80, 96],
+        })
+        fig = px.line(concept, x='stage', y='conceptual_depth', markers=True, labels={'conceptual_depth':'Curriculum depth', 'stage':''})
+        fig.update_layout(height=310, margin=dict(l=10,r=10,t=20,b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#dce8f2', showlegend=False)
+        fig.update_xaxes(gridcolor='rgba(128,166,199,.14)', tickangle=-20)
+        fig.update_yaxes(gridcolor='rgba(128,166,199,.14)', showticklabels=False)
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        st.caption('Conceptual curriculum map — not experimental performance data.')
+
+    st.markdown('<div class="fc-eyebrow">Start anywhere</div><div class="fc-page-title" style="font-size:2rem">Popular modules</div>', unsafe_allow_html=True)
+    cols = st.columns(3)
+    for col, module in zip(cols, LEARNING_MODULES[:3]):
+        with col:
+            tags = ' · '.join(module['tags'][:2])
+            st.markdown(f'<div class="fc-card"><div class="fc-eyebrow">{tags}</div><h3>{module["title"]}</h3><p>{module["summary"]}</p><div class="small-muted">{module["level"]}</div></div>', unsafe_allow_html=True)
+            if st.button('Open module', key=f'home_module_{module["id"]}', use_container_width=True):
+                st.session_state.selected_module = module['id']
+                st.session_state.nav_page = 'Learn'
+                st.rerun()
+
+
+def page_user_dashboard(user: Dict[str, Any]) -> None:
+    ui_heading('Private to you', 'Dashboard', 'Track learning progress, topic exploration, and community activity for this anonymous session.')
+    events = query_df('SELECT * FROM events WHERE user_id = ? ORDER BY created_at DESC', (user['user_id'],))
+    posts = query_df('SELECT * FROM posts WHERE user_id = ?', (user['user_id'],))
+    feedback = query_df('SELECT * FROM feedback WHERE user_id = ?', (user['user_id'],))
+    collabs = query_df('SELECT * FROM collaborations WHERE user_id = ?', (user['user_id'],))
+
+    if events.empty:
+        module_views = 0
+        community_actions = len(posts) + len(collabs)
+        minutes_week = 0
+        streak = 0
+    else:
+        parsed = pd.to_datetime(events['created_at'], errors='coerce', utc=True)
+        today = pd.Timestamp.now(tz='UTC').normalize()
+        this_week = parsed >= today - pd.Timedelta(days=6)
+        weights = {'module_view': 8, 'quiz_attempt': 5, 'post_created': 4, 'comment_created': 3, 'collab_created': 6, 'feedback_given': 2}
+        minutes_week = int(sum(weights.get(et, 1) for et in events.loc[this_week, 'event_type'].astype(str)))
+        module_views = int(events.loc[events['event_type'].eq('module_view'), 'item_id'].nunique())
+        community_actions = int(events['event_type'].isin(['post_created','comment_created','post_upvote','collab_created','collab_interest']).sum())
+        active_days = sorted({d.date() for d in parsed.dropna()}, reverse=True)
+        streak = 0
+        cursor = today.date()
+        for d in active_days:
+            if d == cursor:
+                streak += 1
+                cursor = cursor - pd.Timedelta(days=1)
+            elif d < cursor:
+                break
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric('Modules explored', f'{module_views} / {len(LEARNING_MODULES)}')
+    m2.metric('Active-day streak', streak)
+    m3.metric('Est. minutes · 7d', minutes_week)
+    m4.metric('Community actions', community_actions)
+
+    left, right = st.columns([1.45, 1], gap='large')
+    with left:
+        st.markdown('<div class="fc-eyebrow">Estimated learning activity · last 7 days</div>', unsafe_allow_html=True)
+        dates = pd.date_range(pd.Timestamp.now(tz='UTC').normalize() - pd.Timedelta(days=6), periods=7, freq='D')
+        activity = pd.DataFrame({'date': dates, 'minutes': 0})
+        if not events.empty:
+            ev_dates = pd.to_datetime(events['created_at'], errors='coerce', utc=True).dt.normalize()
+            weights = events['event_type'].map({'module_view': 8, 'quiz_attempt': 5, 'post_created': 4, 'comment_created': 3, 'collab_created': 6, 'feedback_given': 2}).fillna(1)
+            daily = pd.DataFrame({'date': ev_dates, 'minutes': weights}).dropna().groupby('date', as_index=False)['minutes'].sum()
+            activity = activity.merge(daily, on='date', how='left', suffixes=('', '_actual'))
+            activity['minutes'] = activity['minutes_actual'].fillna(activity['minutes'])
+        st.area_chart(activity.set_index('date')['minutes'], height=270)
+    with right:
+        st.markdown('<div class="fc-eyebrow">Topic exploration</div>', unsafe_allow_html=True)
+        topic_counts = {t: 0 for t in TOPICS}
+        if not events.empty:
+            for raw in events['topic'].fillna(''):
+                for t in str(raw).split(','):
+                    if t in topic_counts:
+                        topic_counts[t] += 1
+        top = sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)[:6]
+        if any(v for _, v in top):
+            radar = pd.DataFrame({'topic':[t for t,_ in top], 'value':[v for _,v in top]})
+            fig = px.line_polar(radar, r='value', theta='topic', line_close=True)
+            fig.update_traces(fill='toself')
+            fig.update_layout(height=270, margin=dict(l=20,r=20,t=20,b=20), paper_bgcolor='rgba(0,0,0,0)', font_color='#dce8f2', polar=dict(bgcolor='rgba(0,0,0,0)', radialaxis=dict(showticklabels=False, gridcolor='rgba(128,166,199,.15)'), angularaxis=dict(gridcolor='rgba(128,166,199,.15)')))
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        else:
+            st.info('Explore modules, posts, and projects to build your topic map.')
+
+    c1, c2 = st.columns(2, gap='large')
+    with c1:
+        st.markdown('<div class="fc-eyebrow">Module progress</div>', unsafe_allow_html=True)
+        viewed = set(events.loc[events['event_type'].eq('module_view'), 'item_id'].astype(str)) if not events.empty else set()
+        quizzed = set(events.loc[events['event_type'].eq('quiz_attempt'), 'item_id'].astype(str)) if not events.empty else set()
+        for module in LEARNING_MODULES:
+            progress = 100 if module['id'] in quizzed else 55 if module['id'] in viewed else 0
+            st.caption(f'{module["title"]} · {progress}%')
+            st.progress(progress)
+    with c2:
+        st.markdown('<div class="fc-eyebrow">Recent activity</div>', unsafe_allow_html=True)
+        if events.empty:
+            st.info('No activity yet. Start with a learning module or AI Mentor recommendation.')
+        else:
+            labels = {
+                'module_view':'Explored module', 'quiz_attempt':'Tried knowledge check', 'post_created':'Published post',
+                'comment_created':'Commented', 'post_upvote':'Upvoted discussion', 'collab_created':'Created project',
+                'collab_interest':'Joined project interest', 'feedback_given':'Trained AI feedback', 'recommendation_accepted':'Accepted AI suggestion'
+            }
+            for _, row in events.head(8).iterrows():
+                label = labels.get(row['event_type'], str(row['event_type']).replace('_',' ').title())
+                item = str(row['item_id'] or row['topic'] or '')[:55]
+                st.markdown(f'**{label}**  \n<span class="small-muted">{item} · {row["created_at"]}</span>', unsafe_allow_html=True)
+
+    st.caption('Engagement minutes are an MVP estimate from interaction types, not a stopwatch measurement.')
+
+
+def page_qr(user: Dict[str, Any]) -> None:
+    ui_heading('Share offline', 'QR Generator', 'Create real QR codes for the public app, a learning module, a community campaign, or a collaboration outreach link.')
+    app_url = st.text_input('Public Streamlit app URL', placeholder='https://your-app-name.streamlit.app')
+    kind = st.radio('Share type', ['Platform', 'Learning module', 'Community outreach', 'Collaboration'], horizontal=True)
+    target = ''
+    if kind == 'Learning module':
+        module = st.selectbox('Module', LEARNING_MODULES, format_func=lambda m: m['title'])
+        target = module['id']
+    elif kind == 'Community outreach':
+        target = st.text_input('Campaign/referral label', value='ethan_fusion_community')
+    elif kind == 'Collaboration':
+        collabs = query_df('SELECT collab_id, title FROM collaborations ORDER BY created_at DESC LIMIT 50')
+        if collabs.empty:
+            target = st.text_input('Project/referral label', value='fusion_collaboration')
+        else:
+            options = {row['title']: row['collab_id'] for _, row in collabs.iterrows()}
+            selected = st.selectbox('Collaboration proposal', list(options.keys()))
+            target = options[selected]
+    else:
+        target = st.text_input('Referral label', value='ethan_fusion_outreach')
+
+    if app_url.strip():
+        base = app_url.strip().rstrip('/')
+        if kind == 'Learning module':
+            destination = f'{base}?ref=qr_module_{target}'
+        elif kind == 'Collaboration':
+            destination = f'{base}?ref=qr_collab_{target}'
+        else:
+            destination = f'{base}?ref={target.strip() or "fusionconnect"}'
+        left, right = st.columns([1, .75], gap='large')
+        with left:
+            st.text_input('Destination', value=destination, disabled=True)
+            st.markdown('<div class="fc-note">Referral tags are captured by the MVP signup logic so Ethan can compare outreach sources in Founder Analytics.</div>', unsafe_allow_html=True)
+        with right:
+            png = qr_png_bytes(destination)
+            st.image(png, caption='Scan to open Fusion Connect AI', width=280)
+            st.download_button('Download QR code PNG', data=png, file_name='fusion_connect_ai_qr.png', mime='image/png', use_container_width=True)
+    else:
+        st.info('Enter the deployed Streamlit URL to generate a working QR code.')
 
 
 def page_start(user: Dict[str, Any]) -> None:
-    st.header('Start / Onboarding')
-    st.write('Create a privacy-aware profile so the AI mentor can recommend learning modules, discussions, and collaboration paths.')
+    ui_heading('Your profile', 'Onboarding', 'Create a privacy-aware profile so the AI mentor can recommend learning modules, discussions, and collaboration paths.')
     st.info('Avoid collecting personally identifying information from students or minors unless you have the right consent process. Use broad, optional categories instead of exact birth date, address, or sensitive personal data.')
 
     with st.form('profile_form'):
@@ -842,9 +1125,9 @@ def page_start(user: Dict[str, Any]) -> None:
 
 
 def page_ai_mentor(user: Dict[str, Any]) -> None:
-    st.header('AI Mentor')
+    ui_heading('Transparent recommendations', 'AI Mentor', 'Personalised next steps that explain the role of rules, supervised ML, neural modelling, and feedback rewards.')
     if not user.get('consent_ai'):
-        st.warning('AI personalization is currently off. Recommendations below use only basic rules and community trends. Enable personalization in Start / Onboarding for the full ML + neural + feedback pipeline.')
+        st.warning('AI personalization is currently off. Recommendations below use only basic rules and community trends. Enable personalization in Profile / Onboarding for the full ML + neural + feedback pipeline.')
     recommendations, status = recommend_actions(user)
     st.caption(status)
 
@@ -864,11 +1147,11 @@ def page_ai_mentor(user: Dict[str, Any]) -> None:
                     log_event(user['user_id'], 'recommendation_accepted', rec['item_id'], ','.join(rec['tags']), {'action_id': rec['action_id']})
                     if rec['type'] == 'learn' and rec['item_id'] not in {'quiz'}:
                         st.session_state.selected_module = rec['item_id']
-                        st.session_state.nav_page = 'Learn Fusion'
+                        st.session_state.nav_page = 'Learn'
                     elif rec['item_id'] == 'new_post':
-                        st.session_state.nav_page = 'Community Feed'
+                        st.session_state.nav_page = 'Community'
                     elif rec['item_id'] in {'new_collab', 'collab_board'}:
-                        st.session_state.nav_page = 'Collaboration Hub'
+                        st.session_state.nav_page = 'Collaborate'
                     st.rerun()
 
     st.subheader('Give feedback to train the AI')
@@ -886,8 +1169,7 @@ def page_ai_mentor(user: Dict[str, Any]) -> None:
 
 
 def page_learn(user: Dict[str, Any]) -> None:
-    st.header('Learn Fusion')
-    st.write('Use these modules as the first public-education content layer. Add more modules over time as the community grows.')
+    ui_heading('Curriculum', 'Learn', 'Two tracks meet in the middle: physics that governs ionised matter and engineering that can turn it into useful energy.')
     col1, col2 = st.columns([0.35, 0.65])
     with col1:
         levels = ['All'] + KNOWLEDGE_LEVELS
@@ -930,10 +1212,10 @@ def page_learn(user: Dict[str, Any]) -> None:
 
 
 def page_community(user: Dict[str, Any]) -> None:
-    st.header('Community Feed')
-    st.write('A lightweight Reddit/X-style space for questions, ideas, outreach, and project notes.')
+    ui_heading('Discussion', 'Community', 'A focused science feed for results, questions, outreach, and debate across physics and nuclear fusion.')
+    st.markdown('<div class="fc-note"><strong>Community norm:</strong> cite what you can, say when you are unsure, and keep discussion constructive and science-focused.</div>', unsafe_allow_html=True)
     if not user.get('consent_public'):
-        st.info('You have not confirmed public posting consent. You can still read posts. To post, enable public posting consent in Start / Onboarding.')
+        st.info('You have not confirmed public posting consent. You can still read posts. To post, enable public posting consent in Profile / Onboarding.')
 
     with st.expander('Create a post', expanded=False):
         with st.form('new_post_form'):
@@ -1006,8 +1288,7 @@ def page_community(user: Dict[str, Any]) -> None:
 
 
 def page_collaboration(user: Dict[str, Any]) -> None:
-    st.header('Collaboration Hub')
-    st.write('Post mini-project ideas, class activities, reading groups, or research collaboration prompts.')
+    ui_heading('Open projects', 'Collaborate', 'Post mini-project ideas, class activities, reading groups, outreach work, or research collaboration prompts.')
     with st.expander('Create collaboration proposal', expanded=False):
         with st.form('collab_form'):
             title = st.text_input('Proposal title', max_chars=160)
@@ -1065,8 +1346,7 @@ def qr_png_bytes(url: str) -> bytes:
 
 
 def page_dashboard(user: Dict[str, Any]) -> None:
-    st.header('Founder Dashboard')
-    st.write('This page helps Ethan Meline track anonymized launch, outreach, and community-growth metrics.')
+    ui_heading('Leadership & outreach', 'Founder Analytics', 'An anonymized launch dashboard for Ethan Meline to track community growth, engagement, referral sources, and project activity.')
     default_pass = 'demo'
     try:
         admin_pass = st.secrets.get('ADMIN_PASSCODE', default_pass)
@@ -1149,8 +1429,7 @@ def page_dashboard(user: Dict[str, Any]) -> None:
 
 
 def page_privacy(user: Dict[str, Any]) -> None:
-    st.header('Privacy / Data')
-    st.write('This prototype is designed around anonymous IDs, optional broad profile fields, and transparent personalization.')
+    ui_heading('Control your data', 'Privacy / Data', 'This prototype is designed around anonymous IDs, optional broad profile fields, transparent personalization, export, and deletion controls.')
     st.markdown(
         """
 **Recommended production upgrades before public launch:**
@@ -1200,33 +1479,41 @@ def main() -> None:
     user_id = create_user_if_needed()
     user = sidebar_user(user_id)
 
-    pages = ['Start / Onboarding', 'AI Mentor', 'Learn Fusion', 'Community Feed', 'Collaboration Hub', 'Founder Dashboard', 'Privacy / Data']
+    pages = ['Home', 'Learn', 'Community', 'Collaborate', 'AI Mentor', 'My Dashboard', 'QR Generator', 'Profile / Onboarding', 'Founder Analytics', 'Privacy / Data']
     if 'nav_page' in st.session_state and st.session_state.nav_page in pages:
         default_index = pages.index(st.session_state.nav_page)
         del st.session_state.nav_page
     else:
         default_index = 0
-    page = st.sidebar.radio('Navigate', pages, index=default_index)
+    page = st.sidebar.radio('Navigate', pages, index=default_index, label_visibility='collapsed')
 
-    if page == 'Start / Onboarding':
-        page_start(user)
+    if page == 'Home':
+        page_home(user)
+    elif page == 'Learn':
+        page_learn(user)
+    elif page == 'Community':
+        page_community(user)
+    elif page == 'Collaborate':
+        page_collaboration(user)
     elif page == 'AI Mentor':
         page_ai_mentor(user)
-    elif page == 'Learn Fusion':
-        page_learn(user)
-    elif page == 'Community Feed':
-        page_community(user)
-    elif page == 'Collaboration Hub':
-        page_collaboration(user)
-    elif page == 'Founder Dashboard':
+    elif page == 'My Dashboard':
+        page_user_dashboard(user)
+    elif page == 'QR Generator':
+        page_qr(user)
+    elif page == 'Profile / Onboarding':
+        page_start(user)
+    elif page == 'Founder Analytics':
         page_dashboard(user)
     elif page == 'Privacy / Data':
         page_privacy(user)
 
     st.divider()
-    st.caption(f'Founder & Author: {FOUNDER_NAME}  |  Advisor: {ADVISOR_NAME}')
-    st.caption('Prototype only: educational content is simplified; use expert review before presenting it as authoritative curriculum. AI suggestions are recommendations, not scientific or academic advice.')
-
+    st.markdown(
+        f'<div class="small-muted">Fusion Connect AI · Founder & Author: <strong>{FOUNDER_NAME}</strong> · Advisor: <strong>{ADVISOR_NAME}</strong></div>',
+        unsafe_allow_html=True,
+    )
+    st.caption('Educational prototype: content is simplified and should receive expert review before being presented as authoritative curriculum. AI suggestions are navigation and learning recommendations, not scientific or academic advice.')
 
 if __name__ == '__main__':
     main()
