@@ -1,135 +1,179 @@
-# FusionConnect AI
+# Fusion Connect AI
 
-**Founder & Author: Ethan Meline**
+> A premium, frontend-only educational platform prototype for physics, nuclear fusion, and scientific collaboration.
 
-**Advisor: Dr. Qingyang Xiao**
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
+[![TanStack Start](https://img.shields.io/badge/TanStack%20Start-v1-FF4154?logo=tanstack)](https://tanstack.com/start)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-v4-06B6D4?logo=tailwindcss)](https://tailwindcss.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite)](https://vitejs.dev)
 
-FusionConnect AI is a Streamlit prototype for public physics and nuclear-fusion education, community discussion, research-collaboration discovery, and AI-assisted personalization.
+![Fusion Connect AI Hero](./public/og-image.png)
 
-The repository is organized for direct upload to GitHub and deployment on **Streamlit Community Cloud** with **Python 3.12**.
+---
 
-## Project team
+## Overview
 
-- **Founder & Author:** Ethan Meline
-- **Advisor:** Dr. Qingyang Xiao
+**Fusion Connect AI** is a polished prototype of a modern learning and collaboration platform focused on plasma physics, nuclear fusion, and scientific discovery. It demonstrates a cohesive, interactive UX without relying on a backend, authentication, real AI/ML models, or external APIs.
 
+The design language is intentionally scientific and premium: a dark navy foundation, crisp light surfaces, electric blue/cyan accents, thin borders, and subtle plasma and magnetic-field visual motifs.
 
-## Core features
+---
 
-- Physics and nuclear-fusion learning modules with simplified explanations and knowledge checks.
-- Anonymous onboarding with broad demographic, interest, knowledge-level, and goal fields.
-- Community feed inspired by discussion/social platforms for sharing ideas and responding to other users.
-- Collaboration Hub for research/project proposals and expressions of interest.
-- AI Mentor recommendation engine combining:
-  - supervised machine learning,
-  - a multilayer perceptron/deep-neural-network-style model,
-  - feedback/reward updates inspired by reinforcement learning,
-  - rule-based fallback recommendations when training data is limited.
-- User feedback loop to improve future recommendations.
-- Founder Dashboard with anonymous signup counts, engagement metrics, user-interest summaries, referral/QR-source counts, and QR-code generation.
-- Privacy/Data page for data export and deletion of the current anonymous account.
-- SQLite prototype database seeded automatically on first launch.
+## Features
 
-## Repository structure
+- **Home** — Hero with tokamak/plasma visuals, feature sections, scientific stats, and popular modules.
+- **Learn** — Physics and Nuclear Fusion module cards with difficulty, duration, and progress. Detailed lesson pages with equations, SVG diagrams, knowledge checks, and prev/next navigation.
+- **Onboarding** — Anonymous onboarding flow: identity, interest selection, education level, privacy/consent, and analytics opt-in.
+- **Community** — X/Twitter-style science feed with posts, comments, upvotes, saves, shares, topic filters, and post detail views.
+- **Collaborate** — Research and Classroom project proposals with search, filters, detail modals, and a create-proposal UI.
+- **AI Mentor** — Mock personalized recommendations with confidence scores, "Why this was recommended" explanations, and a visual ML pipeline illustration.
+- **Dashboard** — Learning progress, streak, study-time chart, topic-mastery radar, completed modules, and recent activity.
+- **Analytics** — Anonymized/k-anonymous engagement dashboard with active learners, completion rates, popular topics, and privacy notices.
+- **QR Generator** — Select modules, projects, posts, or resources and generate deterministic QR-code previews with copy/share actions.
+- **Profile** — Anonymous identity, interests, progress, saved resources, and clear separation of public/private/anonymized data.
 
-```text
-FusionConnect-AI/
-├── app.py
-├── requirements.txt
-├── README.md
-├── LICENSE
-├── .gitignore
-├── .streamlit/
-│   ├── config.toml
-│   └── secrets.toml.example
-├── data/
-│   └── .gitkeep
-└── notebooks/
-    └── FusionConnect_AI_Colab_Development.ipynb
-```
+---
 
-## Run locally
+## Tech Stack
 
-Use Python 3.12 in a virtual environment.
+| Layer | Technology |
+|-------|------------|
+| Framework | [TanStack Start v1](https://tanstack.com/start) (React 19 + Vite 8) |
+| Routing | [TanStack Router](https://tanstack.com/router) (file-based) |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com) with custom scientific theme tokens |
+| Components | [Radix UI](https://www.radix-ui.com) primitives + shadcn/ui patterns |
+| Charts | [Recharts](https://recharts.org) |
+| Icons | [Lucide React](https://lucide.dev) |
+| Forms | React Hook Form + Zod |
+| Toasts | Sonner |
+| Type Safety | TypeScript 5.8 |
 
-```bash
-python -m venv .venv
-```
+---
 
-Activate the environment, then install dependencies:
+## Getting Started
 
-```bash
-python -m pip install -r requirements.txt
-```
+### Prerequisites
 
-Run the app:
+- [Node.js](https://nodejs.org) 18+ or [Bun](https://bun.sh)
+- npm, pnpm, yarn, or bun
+
+### Installation
 
 ```bash
-streamlit run app.py
+# Clone the repository
+git clone https://github.com/your-username/fusion-connect-ai.git
+cd fusion-connect-ai
+
+# Install dependencies
+npm install
+# or
+bun install
 ```
 
-## Upload to GitHub
+### Development
 
-1. Create a new GitHub repository, for example `FusionConnect-AI`.
-2. Extract this ZIP file on your computer.
-3. Upload the **contents** of the `FusionConnect-AI` folder to the root of the GitHub repository. Do not upload only the ZIP file itself.
-4. Commit the files to the `main` branch.
+```bash
+npm run dev
+# or
+bun dev
+```
 
-The important deployment files are already at the repository root:
+The dev server starts at `http://localhost:8080` by default.
 
-- `app.py` — Streamlit entrypoint.
-- `requirements.txt` — Python dependencies.
-- `.streamlit/config.toml` — Streamlit UI/server configuration.
+### Build
 
-## Deploy on Streamlit Community Cloud
+```bash
+npm run build
+# or
+bun run build
+```
 
-1. Go to `https://share.streamlit.io/` and choose **Create app**.
-2. Select the GitHub repository and `main` branch.
-3. Set the entrypoint file to:
+### Preview Production Build
+
+```bash
+npm run preview
+# or
+bun run preview
+```
+
+---
+
+## Project Structure
 
 ```text
-app.py
+src/
+├── components/
+│   ├── plasma-visuals.tsx      # Reusable SVG tokamak/field diagrams
+│   ├── site-nav.tsx            # Responsive navigation + search
+│   └── ui/                     # shadcn/ui component primitives
+├── lib/
+│   ├── app-state.tsx           # Frontend-only React context state
+│   ├── mock-data.ts            # Realistic physics/fusion content
+│   └── utils.ts                # Tailwind/class helpers
+├── routes/                     # TanStack file-based routes
+│   ├── __root.tsx              # Root layout, providers, metadata
+│   ├── index.tsx               # Home
+│   ├── learn.index.tsx         # Module listing
+│   ├── learn.$slug.tsx         # Lesson detail
+│   ├── onboarding.tsx          # Onboarding flow
+│   ├── community.index.tsx     # Community feed
+│   ├── community.$postId.tsx   # Post detail
+│   ├── collaborate.tsx         # Collaboration hub
+│   ├── mentor.tsx              # AI Mentor recommendations
+│   ├── dashboard.tsx           # Personal dashboard
+│   ├── analytics.tsx           # Aggregate analytics
+│   ├── qr.tsx                  # QR generator
+│   └── profile.tsx             # User profile
+├── styles.css                  # Theme tokens, animations, utilities
+├── router.tsx                  # Router configuration
+└── start.ts                    # TanStack Start entry
 ```
 
-4. Open **Advanced settings** and select **Python 3.12**.
-5. Add a strong founder-dashboard password in **Secrets**:
+---
 
-```toml
-ADMIN_PASSCODE = "replace-this-with-a-strong-private-password"
-```
+## Design System
 
-6. Deploy the app.
+- **Foundation:** Dark navy/black surfaces (`#0B0F19`, `#0F172A`)
+- **Surfaces:** Clean light panels (`#F8FAFC`, `#E2E8F0`)
+- **Accents:** Electric cyan/blue (`#06B6D4`, `#3B82F6`, `#22D3EE`)
+- **Typography:** Space Grotesk headings + IBM Plex Mono for scientific/code accents
+- **Effects:** Subtle plasma glows, magnetic grid fields, pulse animations
+- **Borders:** Thin, low-opacity borders for a precise technical feel
 
-After deployment, the public URL will look similar to:
+---
 
-```text
-https://your-app-name.streamlit.app/
-```
+## Important Notes
 
-Enter that URL in the Founder Dashboard QR generator. The generated QR link adds a referral tag so signups can be grouped by outreach source.
+- **Frontend-only prototype:** No backend server, database, authentication, real AI/ML, or analytics processing is implemented.
+- **Mock data:** All modules, posts, projects, recommendations, and analytics are populated from `src/lib/mock-data.ts`.
+- **Local state:** User actions like upvotes, saves, completed modules, and onboarding choices are stored in a React context (`src/lib/app-state.tsx`) and reset on page refresh.
+- **Privacy-first messaging:** Onboarding, analytics, and profile screens include clear notices about anonymity, k-anonymity, and data separation.
+- **QR codes:** QR previews are deterministic SVG patterns generated in the browser; no real backend QR service is used.
 
-## Important data-persistence note
+---
 
-This prototype uses a local SQLite database at `data/fusionconnect_ai.sqlite3`. That is convenient for a demo, classroom presentation, MVP, and early testing, but Streamlit Community Cloud local storage should **not** be treated as a permanent production database. A restart or redeployment can remove locally stored data.
+## Screenshots
 
-Before a real public launch with persistent accounts/community content, migrate storage to a hosted database such as PostgreSQL/Supabase/Neon or another production database and add authentication.
+> Add screenshots of key routes here: `/`, `/learn`, `/community`, `/dashboard`, `/mentor`, `/qr`.
 
-## Privacy and responsible-AI notes
+---
 
-The prototype intentionally uses an anonymous UUID instead of requiring a real name, exact birth date, home address, or other unnecessary identifiers. It also gives users separate controls for AI personalization, public posting, and optional aggregated research/outreach statistics.
+## Roadmap Ideas
 
-Before inviting the general public—especially minors—add appropriate terms of use, a privacy policy, content moderation, abuse reporting, parental/guardian consent where legally required, account authentication, persistent storage, and expert review of educational material.
+- [ ] Persist state to `localStorage` or migrate to a real backend
+- [ ] Add user authentication and profile persistence
+- [ ] Implement real recommendation engine with user feedback loop
+- [ ] Add backend API for posts, projects, and analytics aggregation
+- [ ] Generate actual QR codes from shareable URLs
+- [ ] Add lesson video/embed support and interactive simulations
 
-AI recommendations in this prototype are educational/navigation suggestions. They are not scientific, academic, medical, investment, or safety advice.
-
-## Founder dashboard
-
-The prototype dashboard passcode falls back to `demo` only when no Streamlit secret is supplied. **Do not use `demo` for a public deployment.** Configure `ADMIN_PASSCODE` in Streamlit Community Cloud Secrets.
-
-## Colab notebook
-
-The original single-notebook development version is included in `notebooks/FusionConnect_AI_Colab_Development.ipynb`. The deployable Streamlit entrypoint for this repository is `app.py`.
+---
 
 ## License
 
-MIT License. See `LICENSE`.
+[MIT](./LICENSE)
+
+---
+
+Built with curiosity about fusion, plasma physics, and the future of scientific learning.
