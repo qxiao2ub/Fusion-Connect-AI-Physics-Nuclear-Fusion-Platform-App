@@ -19,3 +19,7 @@ The visual design in `ui_reference/plasma-learn-hub-main/` was ported to the nat
 
 ## Deployment
 Deploy `app.py` on Streamlit Community Cloud. The React source is intentionally retained only as design/reference material.
+
+## Top toolbar / banner protection
+
+The Streamlit port includes responsive header clearance for both `stAppViewBlockContainer` and legacy `.block-container` selectors, plus safe-area support on mobile. This prevents Streamlit's fixed Share toolbar from covering the top page banner or heading.

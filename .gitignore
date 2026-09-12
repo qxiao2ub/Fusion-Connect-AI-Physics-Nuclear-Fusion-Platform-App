@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# Streamlit secrets (never commit real secrets)
+.streamlit/secrets.toml
+
+# Runtime data
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+data/*.db
+data/*.sqlite*
+!data/.gitkeep
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

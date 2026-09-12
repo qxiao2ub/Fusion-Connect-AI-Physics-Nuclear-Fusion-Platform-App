@@ -87,6 +87,11 @@ The important deployment files are already at the repository root:
 - `requirements.txt` — Python dependencies.
 - `.streamlit/config.toml` — Streamlit UI/server configuration.
 
+
+### Streamlit top-banner safe area
+
+This revision reserves a responsive top-safe zone below Streamlit Community Cloud's fixed Share/toolbar header. Page banners and first headings are therefore kept below the toolbar on desktop and mobile, including devices with browser safe-area insets.
+
 ## Deploy on Streamlit Community Cloud
 
 1. Go to `https://share.streamlit.io/` and choose **Create app**.

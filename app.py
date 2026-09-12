@@ -770,13 +770,44 @@ def render_header() -> None:
             var(--fc-bg);
           background-size: 64px 64px;
         }
-        [data-testid="stHeader"] { background: rgba(13,22,37,.78); backdrop-filter: blur(12px); }
-        [data-testid="stToolbar"] { right: 1rem; }
+        /* Streamlit keeps its Share / toolbar header fixed above the app.
+           Reserve a dedicated top-safe zone so page banners and headings can
+           never slide underneath that header, including on narrow screens. */
+        [data-testid="stHeader"] {
+          background: rgba(13,22,37,.92);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          z-index: 1000;
+          min-height: 3.75rem;
+        }
+        [data-testid="stToolbar"] { right: 1rem; z-index: 1001; }
         [data-testid="stSidebar"] { background: #101b2b; border-right: 1px solid var(--fc-border); }
         [data-testid="stSidebar"] * { color: var(--fc-text); }
         [data-testid="stSidebar"] .stRadio label { padding: .22rem .35rem; border-radius: .35rem; }
         [data-testid="stSidebar"] .stRadio label:hover { background: rgba(98,223,244,.08); }
-        .block-container { max-width: 1220px; padding-top: 2.2rem; padding-bottom: 4rem; }
+
+        /* Support both current and older Streamlit DOM selectors. */
+        [data-testid="stAppViewBlockContainer"],
+        .block-container {
+          max-width: 1220px;
+          padding-top: calc(6rem + env(safe-area-inset-top, 0px)) !important;
+          padding-bottom: 4rem !important;
+        }
+
+        /* Anchor navigation and reruns should also land below the fixed header. */
+        .fc-eyebrow, .fc-page-title, .fc-title, h1, h2, h3 {
+          scroll-margin-top: calc(6rem + env(safe-area-inset-top, 0px));
+        }
+
+        @media (max-width: 768px) {
+          [data-testid="stAppViewBlockContainer"],
+          .block-container {
+            padding-top: calc(7rem + env(safe-area-inset-top, 0px)) !important;
+          }
+          .fc-eyebrow, .fc-page-title, .fc-title, h1, h2, h3 {
+            scroll-margin-top: calc(7rem + env(safe-area-inset-top, 0px));
+          }
+        }
         h1, h2, h3 { letter-spacing: -0.025em; }
         h1, h2, h3, h4, p, li, label, span { color: var(--fc-text); }
         .stCaption, [data-testid="stCaptionContainer"], small { color: var(--fc-muted) !important; }
