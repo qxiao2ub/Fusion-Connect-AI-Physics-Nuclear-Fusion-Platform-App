@@ -23,3 +23,7 @@ Deploy `app.py` on Streamlit Community Cloud. The React source is intentionally 
 ## Top toolbar / banner protection
 
 The Streamlit port includes responsive header clearance for both `stAppViewBlockContainer` and legacy `.block-container` selectors, plus safe-area support on mobile. This prevents Streamlit's fixed Share toolbar from covering the top page banner or heading.
+
+### Global cumulative visitor display
+
+A global cumulative-user bar is now rendered before the channel navigation and page content. It appears on every page and is backed by a no-database public counter endpoint. It increments once per new anonymous Streamlit session and does not increment on ordinary widget reruns within that session.

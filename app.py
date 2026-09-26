@@ -12,9 +12,9 @@ import random
 import sqlite3
 import textwrap
 import uuid
+import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -38,10 +38,12 @@ DATA_DIR = APP_DIR / 'data'
 DATA_DIR.mkdir(exist_ok=True)
 DB_PATH = Path(os.getenv('FUSIONCONNECT_DB_PATH', str(DATA_DIR / 'fusionconnect_ai.sqlite3')))
 
-# Persistent cumulative access counter. Configure these in Streamlit Community Cloud Secrets.
-SUPABASE_URL_ENV = 'SUPABASE_URL'
-SUPABASE_KEY_ENV = 'SUPABASE_SERVICE_ROLE_KEY'
-PERSISTENT_COUNTER_TABLE = 'app_visits'
+# Persistent visitor counter: no database or API key required. The external counter
+# stores the cumulative value online; this app increments it once per anonymous
+# Streamlit session and reads the total for the UI.
+VISITOR_COUNTER_NAMESPACE = 'fusion-connect-ai-physics-nuclear-fusion-platform'
+VISITOR_COUNTER_NAME = 'cumulative-visitors'
+VISITOR_COUNTER_BASE = 'https://abacus.jasoncameron.dev'
 
 TOPICS = [
     'fusion basics', 'plasma physics', 'tokamak', 'stellarator', 'inertial fusion',
@@ -256,88 +258,6 @@ def safe_json_loads(value: Any, default: Any) -> Any:
 
 def json_dumps(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
-
-
-def _secret_value(name: str, default: str = '') -> str:
-    """Read a Streamlit secret first, then an environment variable."""
-    try:
-        value = st.secrets.get(name, '')
-    except Exception:
-        value = ''
-    return str(value or os.getenv(name, default) or '')
-
-
-def persistent_counter_configured() -> bool:
-    return bool(_secret_value(SUPABASE_URL_ENV).strip() and _secret_value(SUPABASE_KEY_ENV).strip())
-
-
-def _supabase_request(method: str, path: str, payload: Optional[Any] = None, prefer: str = '') -> Tuple[int, Dict[str, str], str]:
-    base = _secret_value(SUPABASE_URL_ENV).rstrip('/')
-    key = _secret_value(SUPABASE_KEY_ENV)
-    if not base or not key:
-        raise RuntimeError('Persistent counter is not configured.')
-    body = None
-    headers = {
-        'apikey': key,
-        'Authorization': f'Bearer {key}',
-        'Content-Type': 'application/json',
-    }
-    if prefer:
-        headers['Prefer'] = prefer
-    if payload is not None:
-        body = json.dumps(payload).encode('utf-8')
-    req = Request(f"{base}/rest/v1/{path.lstrip('/')}", data=body, headers=headers, method=method)
-    try:
-        with urlopen(req, timeout=8) as resp:
-            raw = resp.read().decode('utf-8')
-            return int(resp.status), dict(resp.headers.items()), raw
-    except HTTPError as exc:
-        detail = exc.read().decode('utf-8', errors='replace')
-        raise RuntimeError(f'Supabase HTTP {exc.code}: {detail[:300]}') from exc
-    except URLError as exc:
-        raise RuntimeError(f'Supabase connection error: {exc.reason}') from exc
-
-
-def record_persistent_app_access(session_id: str, referral_source: str) -> Optional[int]:
-    """Insert this Streamlit session once and return the cumulative count.
-
-    A unique primary key on session_id makes reruns idempotent. The persistent
-    table lives outside Streamlit Cloud so deployments/restarts do not reset the count.
-    """
-    if not persistent_counter_configured():
-        return None
-    payload = [{
-        'session_id': session_id,
-        'created_at': utc_now(),
-        'referral_source': referral_source or 'organic',
-    }]
-    try:
-        _supabase_request('POST', PERSISTENT_COUNTER_TABLE, payload, prefer='resolution=ignore-duplicates,return=minimal')
-        _, headers, _ = _supabase_request(
-            'GET', f'{PERSISTENT_COUNTER_TABLE}?select=session_id&session_id=not.is.null&limit=1', prefer='count=exact'
-        )
-        content_range = headers.get('Content-Range', '')
-        if '/' in content_range:
-            return int(content_range.rsplit('/', 1)[1])
-    except Exception as exc:
-        st.session_state.persistent_counter_error = str(exc)
-        return None
-    return None
-
-
-def get_persistent_app_user_count() -> Optional[int]:
-    if not persistent_counter_configured():
-        return None
-    try:
-        _, headers, _ = _supabase_request(
-            'GET', f'{PERSISTENT_COUNTER_TABLE}?select=session_id&session_id=not.is.null&limit=1', prefer='count=exact'
-        )
-        content_range = headers.get('Content-Range', '')
-        if '/' in content_range:
-            return int(content_range.rsplit('/', 1)[1])
-    except Exception as exc:
-        st.session_state.persistent_counter_error = str(exc)
-    return None
 
 
 def get_conn() -> sqlite3.Connection:
@@ -834,6 +754,61 @@ def add_feedback(user: Dict[str, Any], action_id: str, suggested_item: str, rati
     log_event(user['user_id'], 'feedback_given', suggested_item, '', {'action_id': action_id, 'rating': rating, 'accepted': accepted})
 
 
+
+def _counter_url(action: str) -> str:
+    ns = urllib.parse.quote(VISITOR_COUNTER_NAMESPACE, safe='')
+    name = urllib.parse.quote(VISITOR_COUNTER_NAME, safe='')
+    return f'{VISITOR_COUNTER_BASE}/{action}/{ns}/{name}'
+
+
+def register_and_get_visitor_count() -> Optional[int]:
+    """Increment the hosted counter once for this anonymous session and return total."""
+    if st.session_state.get('_fc_visitor_count_registered'):
+        return st.session_state.get('_fc_visitor_count_value')
+    try:
+        with urllib.request.urlopen(_counter_url('hit'), timeout=4) as response:
+            payload = json.loads(response.read().decode('utf-8'))
+        value = payload.get('value', payload.get('count'))
+        count = int(value)
+        st.session_state['_fc_visitor_count_registered'] = True
+        st.session_state['_fc_visitor_count_value'] = count
+        return count
+    except Exception:
+        return None
+
+
+def refresh_visitor_count() -> Optional[int]:
+    """Read the hosted total without incrementing it."""
+    try:
+        with urllib.request.urlopen(_counter_url('get'), timeout=4) as response:
+            payload = json.loads(response.read().decode('utf-8'))
+        value = payload.get('value', payload.get('count'))
+        count = int(value)
+        st.session_state['_fc_visitor_count_value'] = count
+        return count
+    except Exception:
+        return st.session_state.get('_fc_visitor_count_value')
+
+
+def render_global_visitor_bar(count: Optional[int]) -> None:
+    if count is None:
+        label = 'CUMULATIVE APP USERS - COUNTER TEMPORARILY UNAVAILABLE'
+        value = '-'
+        note = 'Public counter will resume automatically when the counter service is reachable.'
+    else:
+        label = 'CUMULATIVE APP USERS - NEW SESSION COUNTED ONCE'
+        value = f'{count:,}'
+        note = 'Persistent cloud counter - no database - one count per new anonymous session'
+    st.markdown(
+        f'''<div class="fc-visitor-bar" role="status" aria-live="polite">
+              <div><span class="fc-visitor-pulse">&bull;</span><span class="fc-visitor-label">{label}</span></div>
+              <div class="fc-visitor-count">{value}</div>
+              <div class="fc-visitor-note">{note}</div>
+            </div>''',
+        unsafe_allow_html=True,
+    )
+
+
 def render_header() -> None:
     st.set_page_config(page_title=APP_NAME, page_icon='⚛️', layout='wide', initial_sidebar_state='expanded')
     st.markdown(
@@ -896,6 +871,21 @@ def render_header() -> None:
           .fc-eyebrow, .fc-page-title, .fc-title, h1, h2, h3 {
             scroll-margin-top: calc(7rem + env(safe-area-inset-top, 0px));
           }
+        }
+        .fc-visitor-bar {
+          display:grid; grid-template-columns: 1.4fr auto 1.7fr; align-items:center; gap:.85rem;
+          margin:.35rem 0 1.25rem 0; padding:.8rem 1rem;
+          border:1px solid rgba(98,223,244,.32); border-radius:.6rem;
+          background:linear-gradient(90deg, rgba(98,223,244,.11), rgba(112,132,255,.08));
+          box-shadow:0 0 30px rgba(98,223,244,.08);
+        }
+        .fc-visitor-pulse { color:var(--fc-signal); margin-right:.45rem; text-shadow:0 0 10px rgba(104,235,206,.65); }
+        .fc-visitor-label { font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:var(--fc-muted); }
+        .fc-visitor-count { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:1.45rem; font-weight:800; color:#f7fbff; text-align:center; white-space:nowrap; }
+        .fc-visitor-note { color:var(--fc-muted); font-size:.72rem; text-align:right; }
+        @media (max-width: 768px) {
+          .fc-visitor-bar { grid-template-columns:1fr auto; }
+          .fc-visitor-note { grid-column:1 / -1; text-align:left; }
         }
         h1, h2, h3 { letter-spacing: -0.025em; }
         h1, h2, h3, h4, p, li, label, span { color: var(--fc-text); }
@@ -979,6 +969,12 @@ def sidebar_user(user_id: str) -> Dict[str, Any]:
     return user
 
 def page_home(user: Dict[str, Any]) -> None:
+    count = st.session_state.get('_fc_visitor_count_value')
+    c1, c2 = st.columns([0.55, 0.45])
+    with c1:
+        st.metric('Cumulative App Users', f'{count:,}' if isinstance(count, int) else '-')
+    with c2:
+        st.caption('Every new anonymous Streamlit session is counted once. The total is stored by a public counter service, not a database.')
     left, right = st.columns([1.02, 0.98], gap='large')
     with left:
         st.markdown(
@@ -1053,12 +1049,7 @@ def page_home(user: Dict[str, Any]) -> None:
 
 
 def page_user_dashboard(user: Dict[str, Any]) -> None:
-    ui_heading('Private to you', 'Dashboard', 'Track learning progress, topic exploration, community activity, and the cumulative public platform reach.')
-    persistent_count = st.session_state.get('persistent_user_count')
-    pc1, pc2, pc3 = st.columns(3)
-    pc1.metric('Cumulative app users', f'{persistent_count:,}' if isinstance(persistent_count, int) else 'Configure persistence')
-    pc2.metric('Current anonymous session', user['user_id'][-8:])
-    pc3.metric('Counter status', 'Persistent' if isinstance(persistent_count, int) else 'Setup needed')
+    ui_heading('Private to you', 'Dashboard', 'Track learning progress, topic exploration, and community activity for this anonymous session.')
     events = query_df('SELECT * FROM events WHERE user_id = ? ORDER BY created_at DESC', (user['user_id'],))
     posts = query_df('SELECT * FROM posts WHERE user_id = ?', (user['user_id'],))
     feedback = query_df('SELECT * FROM feedback WHERE user_id = ?', (user['user_id'],))
@@ -1472,6 +1463,8 @@ def qr_png_bytes(url: str) -> bytes:
 
 def page_dashboard(user: Dict[str, Any]) -> None:
     ui_heading('Leadership & outreach', 'Founder Analytics', 'An anonymized launch dashboard for Ethan Meline to track community growth, engagement, referral sources, and project activity.')
+    count = refresh_visitor_count()
+    st.metric('Cumulative App Users', f'{count:,}' if isinstance(count, int) else '-')
     default_pass = 'demo'
     try:
         admin_pass = st.secrets.get('ADMIN_PASSCODE', default_pass)
@@ -1488,17 +1481,11 @@ def page_dashboard(user: Dict[str, Any]) -> None:
     feedback = query_df('SELECT * FROM feedback')
     collabs = query_df('SELECT * FROM collaborations')
 
-    persistent_count = get_persistent_app_user_count()
-    if persistent_count is not None:
-        st.session_state.persistent_user_count = persistent_count
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric('Cumulative app users', f'{persistent_count:,}' if isinstance(persistent_count, int) else 'Not configured')
-    c2.metric('Anonymous profiles', len(users[~users['user_id'].astype(str).str.startswith('seed-user')]) if not users.empty else 0)
-    c3.metric('Community posts', len(posts))
-    c4.metric('Collaboration proposals', len(collabs))
-    c5.metric('AI feedback records', len(feedback))
-    if persistent_count is None:
-        st.warning('The cumulative counter is not connected. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Streamlit Cloud Secrets, then run the SQL in persistence/app_visits.sql. Until configured, the app cannot guarantee a cumulative non-resetting total across Streamlit redeployments.')
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric('Anonymous signups', len(users[~users['user_id'].astype(str).str.startswith('seed-user')]) if not users.empty else 0)
+    c2.metric('Community posts', len(posts))
+    c3.metric('Collaboration proposals', len(collabs))
+    c4.metric('AI feedback records', len(feedback))
 
     if not events.empty:
         events['date'] = pd.to_datetime(events['created_at'], errors='coerce').dt.date
@@ -1607,18 +1594,10 @@ def main() -> None:
     init_db()
     ensure_seed_data()
     render_header()
+    visitor_count = register_and_get_visitor_count()
     user_id = create_user_if_needed()
     user = sidebar_user(user_id)
-    # Count each Streamlit session once. Persistent storage keeps the cumulative total across redeploys/restarts.
-    if 'persistent_access_recorded' not in st.session_state:
-        count = record_persistent_app_access(user_id, current_referral())
-        st.session_state.persistent_access_recorded = True
-        if count is not None:
-            st.session_state.persistent_user_count = count
-    elif 'persistent_user_count' not in st.session_state:
-        count = get_persistent_app_user_count()
-        if count is not None:
-            st.session_state.persistent_user_count = count
+    render_global_visitor_bar(visitor_count)
 
     pages = ['Home', 'Learn', 'Community', 'Collaborate', 'AI Mentor', 'My Dashboard', 'QR Generator', 'Profile / Onboarding', 'Founder Analytics', 'Privacy / Data']
     if 'nav_page' in st.session_state and st.session_state.nav_page in pages:
@@ -1654,7 +1633,7 @@ def main() -> None:
         f'<div class="small-muted">Fusion Connect AI · Founder & Author: <strong>{FOUNDER_NAME}</strong> · Advisor: <strong>{ADVISOR_NAME}</strong></div>',
         unsafe_allow_html=True,
     )
-    st.caption('Educational prototype: content is simplified and should receive expert review before being presented as authoritative curriculum. AI suggestions are navigation and learning recommendations, not scientific or academic advice. Cumulative user count is recorded once per Streamlit session and stored in the external persistent counter when configured.')
+    st.caption('Educational prototype: content is simplified and should receive expert review before being presented as authoritative curriculum. AI suggestions are navigation and learning recommendations, not scientific or academic advice.')
 
 if __name__ == '__main__':
     main()
