@@ -119,11 +119,24 @@ https://your-app-name.streamlit.app/
 
 Enter that URL in the QR Generator or Founder Analytics QR generator. The generated QR link adds a referral tag so signups can be grouped by outreach source.
 
-## Important data-persistence note
+## Cumulative app-user counter and persistent storage
 
-This prototype uses a local SQLite database at `data/fusionconnect_ai.sqlite3`. That is convenient for a demo, classroom presentation, MVP, and early testing, but Streamlit Community Cloud local storage should **not** be treated as a permanent production database. A restart or redeployment can remove locally stored data.
+The **My Dashboard** and **Founder Analytics** pages now include a **Cumulative App Users** metric. The counter records each Streamlit anonymous session once (reruns do not double-count the same session) and stores the access record outside Streamlit Cloud so the cumulative total can continue across restarts and redeployments.
 
-Before a real public launch with persistent accounts/community content, migrate storage to a hosted database such as PostgreSQL/Supabase/Neon or another production database and add authentication.
+For the counter to be persistent, create a free Supabase project, run `persistence/app_visits.sql` once in the Supabase SQL Editor, and add these values to Streamlit Community Cloud **Secrets**:
+
+```toml
+SUPABASE_URL = "https://YOUR-PROJECT.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY = "YOUR_SERVER_SIDE_SERVICE_ROLE_KEY"
+```
+
+Do **not** commit the service-role key to GitHub. The app sends only an anonymous session identifier, timestamp, and referral source to the counter table. The counter is intentionally separate from the local SQLite demo database.
+
+Important interpretation: one Streamlit browser session is counted once. A person who starts a brand-new session/device can be counted again because this MVP does not use persistent personal authentication or cross-device identity. This avoids collecting identifying information while still providing a durable cumulative reach metric.
+
+If the Supabase secrets are not configured, the app explicitly shows **Not configured** rather than displaying `0`, so an unavailable persistent counter is never represented as zero.
+
+The local SQLite database at `data/fusionconnect_ai.sqlite3` remains useful for demo/community content, but it should not be treated as permanent storage on Streamlit Community Cloud. For long-term public accounts, posts, comments, collaborations, and analytics, migrate those application tables to a hosted database as well.
 
 ## Privacy and responsible-AI notes
 
